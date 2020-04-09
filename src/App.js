@@ -1,27 +1,14 @@
-import { useEffect } from 'react';
-import Swal from 'sweetalert2';
+import React from 'react';
+
 
 function App() {
-  useEffect(() => {
-    const Toast = Swal.mixin({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 3000,
-      timerProgressBar: false,
-      onOpen: (toast) => {
-        toast.addEventListener('mouseenter', Swal.stopTimer);
-        toast.addEventListener('mouseleave', Swal.resumeTimer);
-      },
-    });
+  return (
+    <div>
+      <h1>Hello!</h1>
 
-    Toast.fire({
-      icon: 'success',
-      title: 'Job Saved Successfully !',
-    });
-  });
+    </div>
+  )
 
-  return null;
 }
 
 export default App;
