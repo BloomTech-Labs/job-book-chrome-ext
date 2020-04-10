@@ -1,32 +1,49 @@
 {
-  "name": "Save this Job",
+  "name": "Save This Job",
   "manifest_version": 2,
-  "version": "0.0.1",
-  "description": "A Chrome extension that allows users to save job URL's with a user-facing dashboard that displays saved URL's. Users can login and register from both the front-end and the extension.",
-  "content_scripts": [{
-    "js": ["contentScript.js"],
-    "matches": ["https://*.indeed.com/*"],
-    "css": ["App.css"]
-  }],
+  "version": "0.0.15",
+  "description": "A Chrome extension that allows users to save job posts from indeed.com.",
+  "content_scripts": [
+    {
+      "js": ["contentScript.js"],
+      "matches": [
+        "http://www.indeed.com/*",
+        "https://www.indeed.com/*",
+        "https://staging.d3d1q8nq7a3fmz.amplifyapp.com/*",
+        "http://localhost:3000/*"
+      ]
+    }
+  ],
   "background": {
     "scripts": ["background.js"],
-    "persistent": false
+    "persistent": true
   },
   "browser_action": {
     "default_icon": {
-      "16": "./images/Icon16.png",
-      "32": "./images/Icon32.png",
-      "48": "./images/Icon48.png",
-      "128": "./images/Icon128.png"
-    }
+      "16": "./images/icon16.png",
+      "24": "./images/icon24.png",
+      "32": "./images/icon32.png",
+      "48": "./images/icon48.png",
+      "128": "./images/icon128.png"
+    },
+    "default_title": "Save This Job",
+    "default_popup": "index.html"
   },
-  "icons": [{
-    "16": "./images/Icon16.png",
-    "32": "./images/Icon32.png",
-    "48": "./images/Icon48.png",
-    "128": "./images/Icon128.png"
-  }],
-  "permissions": ["contextMenus", "tabs", "storage", "activeTab"],
-  "content_security_policy": "script-src 'self' 'sha256-ILo8Sg5ameOh7EJPaZmIQYqDkAozAPY56yCIVu/8hPo='; object-src 'self'",
-  "web_accessible_resources" : ["*.html", "*.png", "*.js"]
+  "icons": {
+    "16": "./images/icon16.png",
+    "24": "./images/icon24.png",
+    "32": "./images/icon32.png",
+    "48": "./images/icon48.png",
+    "128": "./images/icon128.png"
+  },
+  "permissions": [
+    "contextMenus",
+    "tabs",
+    "storage",
+    "activeTab",
+    "https://staging-save-this-job.herokuapp.com/jobPosts/addJob",
+    "notifications"
+  ],
+  "content_security_policy": "script-src 'self' 'sha256-eIy+ZFmUSgAl2hneWuGKuPlIoZulI0x+WlWHlAkasAM='; object-src 'self'",
+  "web_accessible_resources": ["*.html", "*.png", "*.js", "*.css"]
 }
