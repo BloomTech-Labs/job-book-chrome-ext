@@ -69,7 +69,7 @@ window.addEventListener("load", () => {
       popup.innerHTML = `
       <p style="color: #08A6C9; margin: 0px; font-size: 16px; font-family: lato; font-weight: 400; letter-spacing: 0px; line-height: 23px;">Your job was saved to<p>
       <p style="color: #08A6C9; margin: 10px 0px 30px; font-size: 35px; font-family: lato; font-weight: 600; letter-spacing: 0px; line-height: 42px; text-transform: capitalize;">SaveThisJob</p>
-      <a href="http://localhost:3000/dashboard" target="_blank" style="box-sizing: border-box; line-height: 15px; text-decoration: none; display: inline-block; padding: 10px 20px; color: white; font-weight: 600; border-radius: 4px; transition: all 0.4s ease-out 0s; background-color: #08A6C9; text-align: center; font-size: 14px; border: 1px solid rgba(0, 0, 0, 0); position: relative; box-shadow: rgba(25, 4, 69, 0.05) 0px 4px 10px;">View Dashboard</a>
+      <a href="https://www.savethisjob.com/dashboard" target="_blank" style="box-sizing: border-box; line-height: 15px; text-decoration: none; display: inline-block; padding: 10px 20px; color: white; font-weight: 600; border-radius: 4px; transition: all 0.4s ease-out 0s; background-color: #08A6C9; text-align: center; font-size: 14px; border: 1px solid rgba(0, 0, 0, 0); position: relative; box-shadow: rgba(25, 4, 69, 0.05) 0px 4px 10px;">View Dashboard</a>
       `
       form.appendChild(drag)
       form.appendChild(formTitle)
@@ -280,7 +280,6 @@ window.addEventListener("load", () => {
           document.querySelector('.TitleText') ||
           null
 
-        const companyATag = iframe ? iframe.contentWindow.document.querySelector('.icl-u-lg-mr--sm a') : null
         const companyElmnt = iframe ? iframe.contentWindow.document.querySelector('.icl-u-lg-mr--sm') : null
         const company =
           document.querySelector('#vjs-cn') ||
@@ -418,7 +417,7 @@ window.addEventListener("load", () => {
             index: 0
           };
 
-          fetch('https://staging-save-this-job.herokuapp.com/users/addJob', {
+          fetch('https://save-this-job.herokuapp.com/users/addJob', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -443,26 +442,37 @@ window.addEventListener("load", () => {
                 locationInput.value = ""
                 jobDescriptionInput.value = ""
                 addJob.innerHTML = 'Add'
-                chrome.storage.local.get('currentJobs', (res) => {
-                  res.currentJobs && res.currentJobs.map((job) => {
-                    fetch(`https://staging-save-this-job.herokuapp.com/users/updateJob/${job.id}`, {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${accessToken}`,
-                      },
-                      body: JSON.stringify({index: job.index + 1}),
-                    })
-                    .then((res) => {
-                      return res.json()
-                    })
-                    .then((response) => {
-                      console.log(response)
+                return fetch('https://save-this-job.herokuapp.com/users/jobs', {
+                  method: 'GET',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${accessToken}`
+                  }
+                }).then((res) => {
+                  return res.json()
+                })
+                  .then((jobs) => {
+                    return jobs && jobs.forEach(job => {
+                      if (job.column_id === 'column-1') {
+                        fetch(`https://save-this-job.herokuapp.com/users/updateJob/${job.id}`, {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${accessToken}`,
+                          },
+                          body: JSON.stringify({ index: job.index + 1 }),
+                        })
+                          .then((res) => {
+                            return res.json()
+                          })
+                          .then((response) => {
+                            if (response.message !== 'Job post updated') {
+                              console.log(response.message)
+                            }
+                          })
+                      }
                     })
                   })
-
-                })
-                chrome.runtime.sendMessage({ type: 'jobSaveSuccess' });
               }
             })
             .catch((error) => {
@@ -520,17 +530,26 @@ window.addEventListener("load", () => {
 
         if (request.type === 'tabActivated') {
           chrome.storage.local.get('token', (storage) => {
-            if (storage.token) {
-              const tack =
-                document.querySelector('.open-button')
-              tack.setAttribute('style', 'display: block !important')
-              return tack
-            } else {
-              const tack =
-                document.querySelector('.open-button')
-              tack.setAttribute('style', 'display: none !important')
-              return tack
-            }
+            chrome.storage.local.get('login', (res) => {
+              if (!res.login) {
+                const tack =
+                  document.querySelector('.open-button')
+                tack.setAttribute('style', 'display: none !important')
+                return tack
+              }
+              if (storage.token) {
+                const tack =
+                  document.querySelector('.open-button')
+                tack.setAttribute('style', 'display: block !important')
+                return tack
+              } else {
+                const tack =
+                  document.querySelector('.open-button')
+                tack.setAttribute('style', 'display: none !important')
+                return tack
+              }
+            })
+
           })
         }
       })

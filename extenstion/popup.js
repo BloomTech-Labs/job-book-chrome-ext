@@ -84,7 +84,7 @@ jobDescription.textContent = 'Description'
 popup.innerHTML = `
       <p style="color: #08A6C9; margin: 0px; font-size: 16px; font-family: lato; font-weight: 400; letter-spacing: 0px; line-height: 23px;">Your job was saved to<p>
       <p style="color: #08A6C9; margin: 10px 0px 30px; font-size: 35px; font-family: lato; font-weight: 600; letter-spacing: 0px; line-height: 42px; text-transform: capitalize;">SaveThisJob</p>
-      <a href="http://localhost:3000/dashboard" target="_blank" style="box-sizing: border-box; line-height: 15px; text-decoration: none; display: inline-block; padding: 10px 20px; color: white; font-weight: 600; border-radius: 4px; transition: all 0.4s ease-out 0s; background-color: #08A6C9; text-align: center; font-size: 14px; border: 1px solid rgba(0, 0, 0, 0); position: relative; box-shadow: rgba(25, 4, 69, 0.05) 0px 4px 10px;">View Dashboard</a>
+      <a href="https://www.savethisjob.com/dashboard" target="_blank" style="box-sizing: border-box; line-height: 15px; text-decoration: none; display: inline-block; padding: 10px 20px; color: white; font-weight: 600; border-radius: 4px; transition: all 0.4s ease-out 0s; background-color: #08A6C9; text-align: center; font-size: 14px; border: 1px solid rgba(0, 0, 0, 0); position: relative; box-shadow: rgba(25, 4, 69, 0.05) 0px 4px 10px;">View Dashboard</a>
       `
 loginSuccess.innerHTML = `
 <div style="display: flex; flex-direction: column; height: 450px; padding: 0px 40px; text-align: center; align-items: center; justify-content: center;">
@@ -465,6 +465,11 @@ window.addEventListener("load", () => {
       openPopup.setAttribute('style', 'display: none !important')
       return openPopup
     } else {
+      if (window.location.origin === 'https://www.savethisjob.com') {
+        const openPopup = shadowRoot.querySelector('.open-button')
+        openPopup.setAttribute('style', 'display: none !important')
+        return openPopup
+      }
       const openPopup = shadowRoot.querySelector('.open-button')
       openPopup.setAttribute('style', 'display: block !important')
       return openPopup
@@ -502,10 +507,11 @@ window.addEventListener("load", () => {
         companyUrl: null,
         description: jobDescriptionInput.value,
         location: locationInput.value,
-        column_id: 'column-1'
+        column_id: 'column-1',
+        index: 0
       };
 
-      fetch('https://staging-save-this-job.herokuapp.com/users/addJob', {
+      fetch('https://save-this-job.herokuapp.com/users/addJob', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -517,7 +523,6 @@ window.addEventListener("load", () => {
           return response.json();
         })
         .then((data) => {
-          console.log(data)
           if (data === 'Jwt is expired') {
             addJob.innerHTML = 'Add'
             return chrome.runtime.sendMessage({ type: 'getToken' });
@@ -531,30 +536,37 @@ window.addEventListener("load", () => {
             locationInput.value = ""
             jobDescriptionInput.value = ""
             addJob.innerHTML = 'Add'
-            chrome.storage.local.get('currentJobs', (res) => {
-              res.currentJobs && res.currentJobs.map((job) => {
-                fetch(`https://staging-save-this-job.herokuapp.com/users/updateJob/${job.id}`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${accessToken}`,
-                  },
-                  body: JSON.stringify({index: job.index + 1}),
-                })
-                .then((res) => {
-                  return res.json()
-                })
-                .then((response) => {
-                  console.log(response)
+            return fetch('https://save-this-job.herokuapp.com/users/jobs', {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${accessToken}`
+              }
+            }).then((res) => {
+              return res.json()
+            })
+              .then((jobs) => {
+                return jobs && jobs.forEach(job => {
+                  if (job.column_id === 'column-1') {
+                    fetch(`https://save-this-job.herokuapp.com/users/updateJob/${job.id}`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                      },
+                      body: JSON.stringify({ index: job.index + 1 }),
+                    })
+                      .then((res) => {
+                        return res.json()
+                      })
+                      .then((response) => {
+                        if (response.message !== 'Job post updated') {
+                          console.log(response.message)
+                        }
+                      })
+                  }
                 })
               })
-
-            })
-            chrome.runtime.sendMessage({ type: 'jobSaveSuccess' }, () => {
-              console.log(chrome.runtime.lastError)
-            });
-          } else {
-            return addJob.innerHTML = 'Add'
           }
         })
         .catch((error) => {
@@ -610,19 +622,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.type === 'tabActivated') {
-    chrome.storage.local.get('token', (storage) => {
-      if (storage.token) {
-        const tack =
-          shadowRoot.querySelector('.open-button')
-        tack.setAttribute('style', 'display: block !important')
-        return tack
-      } else {
-        const tack =
-          shadowRoot.querySelector('.open-button')
-        tack.setAttribute('style', 'display: none !important')
-        return tack
-      }
-    })
+    if (window.location.origin === 'https://www.savethisjob.com') {
+      const tack =
+        shadowRoot.querySelector('.open-button')
+      tack.setAttribute('style', 'display: none !important')
+      return tack
+    } else {
+      chrome.storage.local.get('token', (storage) => {
+        if (storage.token) {
+          const tack =
+            shadowRoot.querySelector('.open-button')
+          tack.setAttribute('style', 'display: block !important')
+          return tack
+        } else {
+          const tack =
+            shadowRoot.querySelector('.open-button')
+          tack.setAttribute('style', 'display: none !important')
+          return tack
+        }
+      })
+    }
   }
 
   if (request.type === 'getTokenFromStorage') {
@@ -632,9 +651,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       } else {
         if (
           window.location.href ===
-          'http://localhost:3000/dashboard'
+          'https://www.savethisjob.com/dashboard'
         ) {
           return setToken();
+        } else {
+          return null
         }
       }
     })
@@ -644,19 +665,27 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 const setToken = () => {
   const token = localStorage.getItem('token');
-  chrome.storage.local.set({ token }, () => {
-    chrome.storage.local.get('loading', (res) => {
-      if (!res.loading) {
-        chrome.runtime.sendMessage({ type: 'tokenSet' }, () => {
-          container.setAttribute('style', 'display: block !important')
-          form.setAttribute('style', 'display: none !important')
-          loginSuccess.setAttribute('style', 'display: block !important')
-          openButton.setAttribute('style', 'display: block !important')
-          openButton.src = chrome.extension.getURL("./images/close-window-50.png")
-        });
-      }
-    })
-  });
+  chrome.storage.local.get('login', (res) => {
+    if (res.login) {
+      chrome.storage.local.set({ token }, () => {
+        container.setAttribute('style', 'display: block !important')
+        form.setAttribute('style', 'display: none !important')
+        loginSuccess.setAttribute('style', 'display: block !important')
+        openButton.setAttribute('style', 'display: block !important')
+        openButton.src = chrome.extension.getURL("./images/close-window-50.png")
+        chrome.runtime.sendMessage({ type: 'tokenSet' })
+      });
+    } else {
+      return null
+    }
+  })
+
+  openButton.addEventListener('click', () => {
+    container.setAttribute('style', 'display: none !important')
+    form.setAttribute('style', 'display: none !important')
+    loginSuccess.setAttribute('style', 'display: none !important')
+    openButton.setAttribute('style', 'display: none !important')
+  })
 };
 
 

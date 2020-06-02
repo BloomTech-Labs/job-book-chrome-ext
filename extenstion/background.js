@@ -36,7 +36,9 @@ chrome.contextMenus.onClicked.addListener((info) => {
       if (result.token) {
         return signOut();
       } else {
-        return chrome.contextMenus.update('logout', { visible: false });
+        return chrome.contextMenus.update('logout', { visible: false }, () => {
+          chrome.contextMenus.update('login', { visible: true })
+        });
       }
     });
   }
@@ -46,7 +48,9 @@ chrome.contextMenus.onClicked.addListener((info) => {
       if (!result.token) {
         return login();
       } else {
-        return chrome.contextMenus.update('login', { visible: true });
+        return chrome.contextMenus.update('login', { visible: true }, () => {
+          chrome.contextMenus.update('logout', { visible: false })
+        });
       }
     });
   }
@@ -56,16 +60,6 @@ let timeout
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'getToken') {
     return login();
-  }
-
-  if (request.type === 'jobSaveSuccess') {
-    const notificationOptions = {
-      type: 'basic',
-      iconUrl: './images/icon48.png',
-      title: 'Job Save Success!',
-      message: 'Your Job url was successfully saved to your dashboard!',
-    };
-    return chrome.notifications.create(notificationOptions);
   }
 
   if (request.type === 'Error') {
@@ -93,7 +87,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.contextMenus.update('login', { visible: true }, function () {
           chrome.storage.local.remove('token'), () => {
             chrome.tabs.query({ currentWindow: true, active: true }, function (tabs) {
-              chrome.tabs.sendMessage(tabs[0].id, { type: "hide" })
+              chrome.tabs.sendMessage(tabs[0].id, { type: "hide" }, () => {
+                chrome.storage.local.remove('login')
+              })
             })
           }
         })
@@ -111,24 +107,24 @@ chrome.browserAction.onClicked.addListener(function () {
         })
       })
     } else {
-      login()
+      return login()
     }
   })
 });
 
 function login() {
-  chrome.tabs.create({ url: 'http://localhost:3000/dashboard' }, () => {
-    chrome.tabs.onUpdated.addListener(() => {
-      chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
-        const tabId = tabs[0].id;
-        chrome.tabs.sendMessage(tabId, { type: 'getTokenFromStorage' }, (response) => {
-          console.log(response)
-          console.log(chrome.runtime.lastError.message)
+  chrome.storage.local.set({ login: "true" }, () => {
+    chrome.tabs.create({ url: 'https://www.savethisjob.com/dashboard' }, () => {
+      chrome.tabs.onUpdated.addListener(() => {
+        chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
+          const tabId = tabs[0].id;
+          chrome.tabs.sendMessage(tabId, { type: 'getTokenFromStorage' }, () => {
+            console.log(chrome.runtime.lastError.message)
+          });
         });
-      });
+      })
     })
-  },
-  );
+  })
 }
 
 function signOut() {
@@ -144,9 +140,10 @@ function signOut() {
             iconUrl: './images/icon48.png',
             title: 'Sign-Out Success!',
             message:
-              'Your are now logged off. Try saving a new job to log back in!',
+              'Your are now logged out',
           };
-          return chrome.notifications.create(notificationOptions);
+          chrome.notifications.create(notificationOptions);
+          chrome.storage.local.remove('login')
         })
       })
     })
@@ -161,12 +158,3 @@ chrome.tabs.onActivated.addListener(function () {
   })
 })
 
-chrome.runtime.onMessageExternal.addListener(
-  function (request, sender, sendResponse) {
-
-    if (request.currentJobs) {
-      console.log(request.currentJobs)
-      console.log(request.loading)
-      chrome.storage.local.set({ currentJobs: request.currentJobs, loading: request.loading})
-    }
-  });
